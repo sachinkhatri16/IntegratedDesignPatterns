@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="FoodOrderingSystemDemo" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.foodordering.FoodOrderingSystemDemo" />
+    <module name="food-ordering-system" />
+    <option name="PROGRAM_PARAMETERS" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <env>
+      <env name="DB_URL" value="jdbc:postgresql://localhost:5432/food_ordering" />
+      <env name="DB_USER" value="postgres" />
+      <env name="DB_PASSWORD" value="1928374650@Asd" />
+    </env>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
+

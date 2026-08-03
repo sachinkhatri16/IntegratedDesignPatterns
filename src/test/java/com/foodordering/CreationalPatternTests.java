@@ -19,7 +19,7 @@ public class CreationalPatternTests {
         DatabaseManager db2 = DatabaseManager.getInstance();
         
         assertSame("Singleton instances should be identical", db1, db2);
-        assertTrue("Database should be connectable", db1.getConnectionString().contains("localhost"));
+        assertTrue("Database should use PostgreSQL", db1.getConnectionString().startsWith("jdbc:postgresql:"));
     }
 
     @Test
