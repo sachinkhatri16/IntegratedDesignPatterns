@@ -28,7 +28,7 @@ public class DatabaseManager {
         );
         this.username = System.getenv().getOrDefault("DB_USER", "postgres");
         // Read password from DB_PASSWORD environment variable (fall back to empty)
-        this.password = System.getenv().getOrDefault("DB_PASSWORD", "1928374650@Asd");
+        this.password = System.getenv().getOrDefault("DB_PASSWORD", "");
     }
 
     public static DatabaseManager getInstance() {

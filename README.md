@@ -12,6 +12,8 @@ This project now uses PostgreSQL instead of SQLite.
 - User: `postgres`
 - Password: empty
 
+The shared IntelliJ run configuration may set `DB_PASSWORD` to the sample value `1928374650@Asd`. If your local PostgreSQL password is different, update the run configuration or set `DB_PASSWORD` before launching.
+
 ### Optional environment variables
 
 You can override the defaults with:
@@ -25,7 +27,7 @@ Example:
 ```powershell
 $env:DB_URL = "jdbc:postgresql://localhost:5432/food_ordering"
 $env:DB_USER = "postgres"
-$env:DB_PASSWORD = "1928374650@Asd"
+$env:DB_PASSWORD = "your_actual_postgres_password"
 mvn test
 ```
 
@@ -56,8 +58,8 @@ psql -U postgres -h localhost -p 5432 -c "ALTER USER postgres WITH PASSWORD '192
 ```powershell
 $env:DB_URL = 'jdbc:postgresql://localhost:5432/food_ordering'
 $env:DB_USER = 'postgres'
-$env:DB_PASSWORD = '1928374650@Asd'
-mvn -DskipTests package
+$env:DB_PASSWORD = 'your_actual_postgres_password'
+mvn -Dmaven.test.skip=true package
 mvn exec:java -Dexec.mainClass="com.foodordering.util.DbConnectionTest"
 ```
 
@@ -71,5 +73,11 @@ mvn exec:java
 Or using the shaded jar:
 ```powershell
 java -jar target/food-ordering-system-1.0.0-shaded.jar
+```
+
+Or run the PowerShell helper, which prompts for the PostgreSQL password if `DB_PASSWORD` is not set:
+
+```powershell
+.\start-app.ps1
 ```
 
