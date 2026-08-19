@@ -14,6 +14,7 @@ public class DatabaseManager {
     // Make singleton safe
     private static volatile DatabaseManager instance;
     private static final Object lock = new Object();
+    public static final String DEFAULT_DB_PASSWORD = "1928374650@Asd";
 
     private String connectionString;
     private Connection connection;
@@ -27,8 +28,8 @@ public class DatabaseManager {
                 "jdbc:postgresql://localhost:5432/food_ordering"
         );
         this.username = System.getenv().getOrDefault("DB_USER", "postgres");
-        // Read password from DB_PASSWORD environment variable (fall back to empty)
-        this.password = System.getenv().getOrDefault("DB_PASSWORD", "");
+        // Read password from DB_PASSWORD environment variable, falling back to the local demo password
+        this.password = System.getenv().getOrDefault("DB_PASSWORD", DEFAULT_DB_PASSWORD);
     }
 
     public static DatabaseManager getInstance() {
@@ -48,17 +49,24 @@ public class DatabaseManager {
             Class.forName("org.postgresql.Driver");
 
             if (connection == null || connection.isClosed()) {
-                if (password == null || password.isBlank()) {
-                    connection = DriverManager.getConnection(connectionString, username, "");
-                } else {
-                    connection = DriverManager.getConnection(connectionString, username, password);
-                }
+                connection = openConnection(password);
                 System.out.println("✓ Database connected: " + connectionString);
                 initializeDatabase();
             }
         } catch (ClassNotFoundException e) {
             System.err.println("✗ PostgreSQL driver not found: " + e.getMessage());
         } catch (SQLException e) {
+            if (shouldRetryWithFallback(e)) {
+                try {
+                    connection = openConnection(DEFAULT_DB_PASSWORD);
+                    password = DEFAULT_DB_PASSWORD;
+                    System.out.println("✓ Database connected with built-in demo password: " + connectionString);
+                    initializeDatabase();
+                    return connection;
+                } catch (SQLException retryException) {
+                    System.err.println("✗ Fallback connection failed: " + retryException.getMessage());
+                }
+            }
             System.err.println("✗ Connection failed: " + e.getMessage());
         }
 
@@ -71,6 +79,22 @@ public class DatabaseManager {
         }
 
         return connection;
+    }
+
+    private Connection openConnection(String passwordToUse) throws SQLException {
+        if (passwordToUse == null || passwordToUse.isBlank()) {
+            return DriverManager.getConnection(connectionString, username, "");
+        }
+        return DriverManager.getConnection(connectionString, username, passwordToUse);
+    }
+
+    private boolean shouldRetryWithFallback(SQLException exception) {
+        String message = exception.getMessage();
+        return message != null
+                && message.toLowerCase().contains("password authentication failed")
+                && password != null
+                && !password.isBlank()
+                && !DEFAULT_DB_PASSWORD.equals(password);
     }
 
     private void initializeDatabase() {
@@ -123,6 +147,77 @@ public class DatabaseManager {
             stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
                     "VALUES ('M3', 'Burger', 'Veggie burger', 250.0, 'Snack', 1) " +
                     "ON CONFLICT (itemId) DO NOTHING");
+
+            // Additional Drinks & Beverages
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('D1', 'Pepsi', 'Refreshing pepsi cola', 90.0, 'Beverage', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('D2', 'Fresh Lemonade', 'Home-made lemon juice', 120.0, 'Beverage', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('D3', 'Cappuccino', 'Rich Italian coffee', 180.0, 'Beverage', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('D4', 'Iced Tea', 'Peach flavored iced tea', 110.0, 'Beverage', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+
+            // Additional Snacks
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('S1', 'French Fries', 'Crispy golden fries', 150.0, 'Snack', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('S2', 'Nachos', 'Cheesy nachos with salsa', 280.0, 'Snack', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('S3', 'Chicken Wings', 'Spicy buffalo wings', 350.0, 'Snack', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+
+            // Fast Food
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('F1', 'Chicken Burger', 'Grilled chicken with cheese', 320.0, 'Fast Food', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('F2', 'Hot Dog', 'Classic beef hot dog', 220.0, 'Fast Food', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('F3', 'Club Sandwich', 'Triple decker sandwich', 290.0, 'Fast Food', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+
+            // Dinner
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('DN1', 'Grilled Steak', 'Prime beef steak with mash', 1200.0, 'Dinner', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('DN2', 'Pasta Carbonara', 'Creamy pasta with bacon', 650.0, 'Dinner', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('DN3', 'Roast Chicken', 'Half roast chicken with herbs', 850.0, 'Dinner', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+
+            // Special Food
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('SP1', 'Chef Special Thali', 'Full course traditional meal', 950.0, 'Special Food', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('SP2', 'Grilled Lobster', 'Fresh buttered lobster', 2500.0, 'Special Food', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+
+            // Continental Food
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('C1', 'Beef Lasagna', 'Classic Italian lasagna', 750.0, 'Continental', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('C2', 'Ratatouille', 'French stewed vegetables', 550.0, 'Continental', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+            stmt.execute("INSERT INTO menu_items (itemId, name, description, price, category, available) " +
+                    "VALUES ('C3', 'Chicken Kiev', 'Breaded chicken with garlic butter', 800.0, 'Continental', 1) " +
+                    "ON CONFLICT (itemId) DO NOTHING");
+
+            // Insert default Admin user
+            stmt.execute("INSERT INTO users (userId, name, email, phone, role, password, active) " +
+                    "VALUES ('admin', 'System Admin', 'admin@foodorder.com', '9999999999', 'ADMIN', 'admin123', 1) " +
+                    "ON CONFLICT (userId) DO NOTHING");
 
             System.out.println("✓ Database initialized");
         } catch (SQLException e) {

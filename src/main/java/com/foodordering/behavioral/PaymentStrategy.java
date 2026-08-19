@@ -86,12 +86,24 @@ class DigitalWalletPaymentStrategy implements PaymentStrategy {
 
     @Override
     public boolean pay(double amount) {
-        System.out.println("  ✓ Paid NPR " + amount + " via " + walletProvider);
+        System.out.println("  ✓ Paid NPR " + amount + " via " + walletProvider + " (Account: " + accountId + ")");
         return true;
     }
 
     @Override
     public String getPaymentMethodName() {
         return walletProvider.toUpperCase();
+    }
+}
+
+class KhaltiPaymentStrategy extends DigitalWalletPaymentStrategy {
+    public KhaltiPaymentStrategy(String accountId) {
+        super("KHALTI", accountId);
+    }
+}
+
+class EsewaPaymentStrategy extends DigitalWalletPaymentStrategy {
+    public EsewaPaymentStrategy(String accountId) {
+        super("ESEWA", accountId);
     }
 }

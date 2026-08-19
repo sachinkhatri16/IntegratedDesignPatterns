@@ -25,6 +25,8 @@ public class OrderContext {
     public void confirm() { currentState.confirm(this); }
     public void prepare() { currentState.prepare(this); }
     public void markReady() { currentState.ready(this); }
+    public void pickUp() { currentState.pickUp(this); }
+    public void setOnWay() { currentState.setOnWay(this); }
     public void deliver() { currentState.deliver(this); }
     public void cancel() { currentState.cancel(this); }
 }
