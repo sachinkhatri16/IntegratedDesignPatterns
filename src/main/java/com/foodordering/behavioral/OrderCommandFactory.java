@@ -16,4 +16,8 @@ public class OrderCommandFactory {
     public static OrderCommand createDeliverOrderCommand(com.foodordering.model.Order order, OrderRepository repository) {
         return new DeliverOrderCommand(order, repository);
     }
+
+    public static OrderCommand createUpdateOrderCommand(com.foodordering.model.Order order, java.util.List<com.foodordering.model.OrderItem> newItems, OrderRepository repository) {
+        return new UpdateOrderCommand(order, newItems, repository);
+    }
 }

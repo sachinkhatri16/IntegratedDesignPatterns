@@ -39,6 +39,12 @@ public class OrderService {
         commandInvoker.executeCommand(command);
     }
 
+    public void updateOrderItems(Order order, List<OrderItem> newItems) {
+        MockOrderRepository repo = new MockOrderRepository();
+        OrderCommand command = OrderCommandFactory.createUpdateOrderCommand(order, newItems, repo);
+        commandInvoker.executeCommand(command);
+    }
+
     public void updateOrderStatus(Order order, OrderStatus newStatus) {
         order.setStatus(newStatus);
         orderRepository.put(order.getOrderId(), order);

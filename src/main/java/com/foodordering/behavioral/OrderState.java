@@ -7,37 +7,34 @@ import com.foodordering.model.OrderStatus;
  * Allows Order to change behavior based on its state
  */
 
-// State interface
+// State
 public interface OrderState {
     void confirm(OrderContext context);
     void prepare(OrderContext context);
     void ready(OrderContext context);
+    void pickUp(OrderContext context);
+    void setOnWay(OrderContext context);
     void deliver(OrderContext context);
     void cancel(OrderContext context);
     String getStateName();
 }
 
+abstract class AbstractOrderState implements OrderState {
+    @Override public void confirm(OrderContext context) { System.out.println("  ✗ Cannot confirm"); }
+    @Override public void prepare(OrderContext context) { System.out.println("  ✗ Cannot prepare"); }
+    @Override public void ready(OrderContext context) { System.out.println("  ✗ Cannot mark ready"); }
+    @Override public void pickUp(OrderContext context) { System.out.println("  ✗ Cannot pick up"); }
+    @Override public void setOnWay(OrderContext context) { System.out.println("  ✗ Cannot set on way"); }
+    @Override public void deliver(OrderContext context) { System.out.println("  ✗ Cannot deliver"); }
+    @Override public void cancel(OrderContext context) { System.out.println("  ✗ Cannot cancel"); }
+}
+
 // Concrete States
-class PendingOrderState implements OrderState {
+class PendingOrderState extends AbstractOrderState {
     @Override
     public void confirm(OrderContext context) {
         System.out.println("  ✓ Order confirmed");
         context.setState(new ConfirmedOrderState());
-    }
-
-    @Override
-    public void prepare(OrderContext context) {
-        System.out.println("  ✗ Cannot prepare before confirming");
-    }
-
-    @Override
-    public void ready(OrderContext context) {
-        System.out.println("  ✗ Cannot mark ready");
-    }
-
-    @Override
-    public void deliver(OrderContext context) {
-        System.out.println("  ✗ Cannot deliver");
     }
 
     @Override
@@ -52,26 +49,11 @@ class PendingOrderState implements OrderState {
     }
 }
 
-class ConfirmedOrderState implements OrderState {
-    @Override
-    public void confirm(OrderContext context) {
-        System.out.println("  ✗ Already confirmed");
-    }
-
+class ConfirmedOrderState extends AbstractOrderState {
     @Override
     public void prepare(OrderContext context) {
         System.out.println("  ✓ Order preparing");
         context.setState(new PreparingOrderState());
-    }
-
-    @Override
-    public void ready(OrderContext context) {
-        System.out.println("  ✗ Not yet preparing");
-    }
-
-    @Override
-    public void deliver(OrderContext context) {
-        System.out.println("  ✗ Not ready for delivery");
     }
 
     @Override
@@ -86,26 +68,11 @@ class ConfirmedOrderState implements OrderState {
     }
 }
 
-class PreparingOrderState implements OrderState {
-    @Override
-    public void confirm(OrderContext context) {
-        System.out.println("  ✗ Already confirmed");
-    }
-
-    @Override
-    public void prepare(OrderContext context) {
-        System.out.println("  ✗ Already preparing");
-    }
-
+class PreparingOrderState extends AbstractOrderState {
     @Override
     public void ready(OrderContext context) {
         System.out.println("  ✓ Order ready for delivery");
         context.setState(new ReadyOrderState());
-    }
-
-    @Override
-    public void deliver(OrderContext context) {
-        System.out.println("  ✗ Not ready yet");
     }
 
     @Override
@@ -120,26 +87,11 @@ class PreparingOrderState implements OrderState {
     }
 }
 
-class ReadyOrderState implements OrderState {
+class ReadyOrderState extends AbstractOrderState {
     @Override
-    public void confirm(OrderContext context) {
-        System.out.println("  ✗ Already confirmed");
-    }
-
-    @Override
-    public void prepare(OrderContext context) {
-        System.out.println("  ✗ Already prepared");
-    }
-
-    @Override
-    public void ready(OrderContext context) {
-        System.out.println("  ✗ Already ready");
-    }
-
-    @Override
-    public void deliver(OrderContext context) {
-        System.out.println("  ✓ Order in delivery");
-        context.setState(new InDeliveryOrderState());
+    public void pickUp(OrderContext context) {
+        System.out.println("  ✓ Order picked up by delivery person");
+        context.setState(new PickedUpOrderState());
     }
 
     @Override
@@ -154,22 +106,20 @@ class ReadyOrderState implements OrderState {
     }
 }
 
-class InDeliveryOrderState implements OrderState {
+class PickedUpOrderState extends AbstractOrderState {
     @Override
-    public void confirm(OrderContext context) {
-        System.out.println("  ✗ Already confirmed");
+    public void setOnWay(OrderContext context) {
+        System.out.println("  ✓ Order is on the way");
+        context.setState(new OnWayOrderState());
     }
 
     @Override
-    public void prepare(OrderContext context) {
-        System.out.println("  ✗ Already prepared");
+    public String getStateName() {
+        return "PICKED_UP";
     }
+}
 
-    @Override
-    public void ready(OrderContext context) {
-        System.out.println("  ✗ Already ready");
-    }
-
+class OnWayOrderState extends AbstractOrderState {
     @Override
     public void deliver(OrderContext context) {
         System.out.println("  ✓ Order delivered");
@@ -177,8 +127,16 @@ class InDeliveryOrderState implements OrderState {
     }
 
     @Override
-    public void cancel(OrderContext context) {
-        System.out.println("  ✗ Cannot cancel during delivery");
+    public String getStateName() {
+        return "ON_THE_WAY";
+    }
+}
+
+class InDeliveryOrderState extends AbstractOrderState {
+    @Override
+    public void deliver(OrderContext context) {
+        System.out.println("  ✓ Order delivered");
+        context.setState(new DeliveredOrderState());
     }
 
     @Override
@@ -187,64 +145,14 @@ class InDeliveryOrderState implements OrderState {
     }
 }
 
-class DeliveredOrderState implements OrderState {
-    @Override
-    public void confirm(OrderContext context) {
-        System.out.println("  ✗ Already delivered");
-    }
-
-    @Override
-    public void prepare(OrderContext context) {
-        System.out.println("  ✗ Already delivered");
-    }
-
-    @Override
-    public void ready(OrderContext context) {
-        System.out.println("  ✗ Already delivered");
-    }
-
-    @Override
-    public void deliver(OrderContext context) {
-        System.out.println("  ✗ Already delivered");
-    }
-
-    @Override
-    public void cancel(OrderContext context) {
-        System.out.println("  ✗ Cannot cancel delivered order");
-    }
-
+class DeliveredOrderState extends AbstractOrderState {
     @Override
     public String getStateName() {
         return "DELIVERED";
     }
 }
 
-class CancelledOrderState implements OrderState {
-    @Override
-    public void confirm(OrderContext context) {
-        System.out.println("  ✗ Order is cancelled");
-    }
-
-    @Override
-    public void prepare(OrderContext context) {
-        System.out.println("  ✗ Order is cancelled");
-    }
-
-    @Override
-    public void ready(OrderContext context) {
-        System.out.println("  ✗ Order is cancelled");
-    }
-
-    @Override
-    public void deliver(OrderContext context) {
-        System.out.println("  ✗ Order is cancelled");
-    }
-
-    @Override
-    public void cancel(OrderContext context) {
-        System.out.println("  ✗ Already cancelled");
-    }
-
+class CancelledOrderState extends AbstractOrderState {
     @Override
     public String getStateName() {
         return "CANCELLED";

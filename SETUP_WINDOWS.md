@@ -65,6 +65,8 @@ psql -U postgres -h localhost -p 5432 -c "CREATE DATABASE food_ordering;"
 
 When prompted for password, enter: `1928374650@Asd`
 
+If your PostgreSQL `postgres` user already has a different password, use that password in `DB_PASSWORD` instead of resetting it.
+
 ---
 
 ## Step 4: Set Environment Variables & Test
@@ -74,7 +76,7 @@ In the SAME PowerShell window:
 ```powershell
 $env:DB_URL = 'jdbc:postgresql://localhost:5432/food_ordering'
 $env:DB_USER = 'postgres'
-$env:DB_PASSWORD = '1928374650@Asd'
+$env:DB_PASSWORD = 'your_actual_postgres_password'
 ```
 
 Navigate to your project:
@@ -84,7 +86,7 @@ cd "C:\Users\Sachin Khatri\IdeaProjects\IntegratedDesignPatterns"
 
 Build and test:
 ```powershell
-mvn -DskipTests package
+mvn -Dmaven.test.skip=true package
 mvn exec:java -Dexec.mainClass="com.foodordering.util.DbConnectionTest"
 ```
 
@@ -106,9 +108,9 @@ Set env vars differently:
 ```cmd
 set DB_URL=jdbc:postgresql://localhost:5432/food_ordering
 set DB_USER=postgres
-set DB_PASSWORD=1928374650@Asd
+set DB_PASSWORD=your_actual_postgres_password
 cd C:\Users\Sachin Khatri\IdeaProjects\IntegratedDesignPatterns
-mvn -DskipTests package
+mvn -Dmaven.test.skip=true package
 mvn exec:java -Dexec.mainClass="com.foodordering.util.DbConnectionTest"
 ```
 

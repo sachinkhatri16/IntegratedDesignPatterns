@@ -53,7 +53,21 @@ public class BehavioralPatternTests {
     }
 
     @Test
-    public void testStatePatternOrderLifecycle() {
+    public void testStrategyPatternEsewaPayment() {
+        PaymentStrategy strategy = PaymentStrategyFactory.createEsewaStrategy("esewa_user_123");
+        assertTrue("eSewa payment should succeed", strategy.pay(500.0));
+        assertEquals("Payment method should be ESEWA", "ESEWA", strategy.getPaymentMethodName());
+    }
+
+    @Test
+    public void testStrategyPatternKhaltiPayment() {
+        PaymentStrategy strategy = PaymentStrategyFactory.createKhaltiStrategy("khalti_user_456");
+        assertTrue("Khalti payment should succeed", strategy.pay(500.0));
+        assertEquals("Payment method should be KHALTI", "KHALTI", strategy.getPaymentMethodName());
+    }
+
+    @Test
+    public void testStatePatternExtendedOrderLifecycle() {
         OrderContext context = new OrderContext();
         
         assertEquals("Initial status should be PENDING", "PENDING", context.getCurrentStatus());
@@ -66,9 +80,45 @@ public class BehavioralPatternTests {
         
         context.markReady();
         assertEquals("Status should be READY", "READY", context.getCurrentStatus());
+
+        context.pickUp();
+        assertEquals("Status should be PICKED_UP", "PICKED_UP", context.getCurrentStatus());
+
+        context.setOnWay();
+        assertEquals("Status should be ON_THE_WAY", "ON_THE_WAY", context.getCurrentStatus());
         
         context.deliver();
-        assertEquals("Status should be IN_DELIVERY", "IN_DELIVERY", context.getCurrentStatus());
+        assertEquals("Status should be DELIVERED", "DELIVERED", context.getCurrentStatus());
+    }
+
+    @Test
+    public void testCommandPatternOrderUpdate() {
+        MockOrderRepository repo = new MockOrderRepository();
+        MenuItem newItem = new MenuItem("M2", "Burger", "Burger", 300.0, "Fast Food");
+        OrderItem orderItem = new OrderItem(newItem, 2);
+        java.util.List<OrderItem> newItems = java.util.Arrays.asList(orderItem);
+
+        OrderCommand command = OrderCommandFactory.createUpdateOrderCommand(order, newItems, repo);
+        
+        double originalAmount = order.getTotalAmount();
+        command.execute();
+        
+        assertEquals("Total amount should be updated", 600.0, order.getTotalAmount(), 0.01);
+        assertEquals("Items count should be 1", 1, order.getItems().size());
+        
+        command.undo();
+        assertEquals("Total amount should be restored", originalAmount, order.getTotalAmount(), 0.01);
+    }
+
+    @Test
+    public void testStatePatternCancelAfterReady() {
+        OrderContext context = new OrderContext();
+        context.confirm();
+        context.prepare();
+        context.markReady();
+        
+        context.cancel();
+        assertEquals("Status should be CANCELLED", "CANCELLED", context.getCurrentStatus());
     }
 
     @Test

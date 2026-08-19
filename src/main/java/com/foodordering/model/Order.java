@@ -55,6 +55,11 @@ public class Order {
         totalAmount += item.getSubtotal();
     }
 
+    public void setItems(List<OrderItem> items) {
+        this.items = new ArrayList<>(items);
+        this.totalAmount = items.stream().mapToDouble(OrderItem::getSubtotal).sum();
+    }
+
     public void removeItem(String itemId) {
         items.removeIf(item -> {
             if (item.getMenuItem().getItemId().equals(itemId)) {

@@ -20,4 +20,12 @@ public class PaymentStrategyFactory {
     public static PaymentStrategy createDigitalWalletStrategy(String provider, String accountId) {
         return new DigitalWalletPaymentStrategy(provider, accountId);
     }
+
+    public static PaymentStrategy createKhaltiStrategy(String accountId) {
+        return new KhaltiPaymentStrategy(accountId);
+    }
+
+    public static PaymentStrategy createEsewaStrategy(String accountId) {
+        return new EsewaPaymentStrategy(accountId);
+    }
 }

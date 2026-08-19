@@ -78,10 +78,34 @@ public class FoodOrderingFacade {
 
     public void cancelOrder(String orderId) {
         Order order = orderRepository.getOrder(orderId);
+        orderRepository.cancelOrder(orderId);
         if (order != null) {
-            orderRepository.cancelOrder(orderId);
             notificationService.sendCancellationNotification(order);
         }
+    }
+
+    public boolean addMenuItem(MenuItem item) {
+        return restaurantRepository.addMenuItem(item);
+    }
+
+    public boolean updateMenuItem(MenuItem item) {
+        return restaurantRepository.updateMenuItem(item);
+    }
+
+    public boolean deleteMenuItem(String itemId) {
+        return restaurantRepository.deleteMenuItem(itemId);
+    }
+
+    public List<Order> getOrdersByCustomer(String customerId) {
+        return orderRepository.getOrdersByCustomer(customerId);
+    }
+
+    public List<Order> getAllOrders() {
+        return orderRepository.getAllOrders();
+    }
+
+    public List<User> getAllUsers() {
+        return userRepository.getAllUsers();
     }
 
     // Internal subsystems
@@ -141,6 +165,28 @@ public class FoodOrderingFacade {
             }
             return null;
         }
+
+        public List<User> getAllUsers() {
+            List<User> users = new ArrayList<>();
+            String sql = "SELECT * FROM users ORDER BY name";
+            try {
+                Connection conn = DatabaseManager.getInstance().getConnection();
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery(sql)) {
+                    while (rs.next()) {
+                        String role = rs.getString("role");
+                        String userId = rs.getString("userId");
+                        String name = rs.getString("name");
+                        String email = rs.getString("email");
+                        String phone = rs.getString("phone");
+                        users.add(UserFactory.createUser(role, userId, name, email, phone));
+                    }
+                }
+            } catch (SQLException e) {
+                System.err.println("✗ Get all users error: " + e.getMessage());
+            }
+            return users;
+        }
     }
 
     static class RestaurantRepository {
@@ -165,6 +211,56 @@ public class FoodOrderingFacade {
                 System.err.println("✗ Get menu error: " + e.getMessage());
             }
             return items;
+        }
+
+        public boolean addMenuItem(MenuItem item) {
+            String sql = "INSERT INTO menu_items(itemId, name, description, price, category, available) VALUES(?, ?, ?, ?, ?, 1)";
+            try {
+                Connection conn = DatabaseManager.getInstance().getConnection();
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, item.getItemId());
+                    pstmt.setString(2, item.getName());
+                    pstmt.setString(3, item.getDescription());
+                    pstmt.setDouble(4, item.getPrice());
+                    pstmt.setString(5, item.getCategory());
+                    return pstmt.executeUpdate() > 0;
+                }
+            } catch (SQLException e) {
+                System.err.println("✗ Add menu item error: " + e.getMessage());
+                return false;
+            }
+        }
+
+        public boolean updateMenuItem(MenuItem item) {
+            String sql = "UPDATE menu_items SET name = ?, description = ?, price = ?, category = ? WHERE itemId = ?";
+            try {
+                Connection conn = DatabaseManager.getInstance().getConnection();
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, item.getName());
+                    pstmt.setString(2, item.getDescription());
+                    pstmt.setDouble(3, item.getPrice());
+                    pstmt.setString(4, item.getCategory());
+                    pstmt.setString(5, item.getItemId());
+                    return pstmt.executeUpdate() > 0;
+                }
+            } catch (SQLException e) {
+                System.err.println("✗ Update menu item error: " + e.getMessage());
+                return false;
+            }
+        }
+
+        public boolean deleteMenuItem(String itemId) {
+            String sql = "UPDATE menu_items SET available = 0 WHERE itemId = ?";
+            try {
+                Connection conn = DatabaseManager.getInstance().getConnection();
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, itemId);
+                    return pstmt.executeUpdate() > 0;
+                }
+            } catch (SQLException e) {
+                System.err.println("✗ Delete menu item error: " + e.getMessage());
+                return false;
+            }
         }
 
         public List<Object> searchByType(String cuisine) {
@@ -217,8 +313,88 @@ public class FoodOrderingFacade {
         }
 
         public Order getOrder(String orderId) {
-            // Simplified for demo
-            return null; 
+            String sql = "SELECT o.*, u.name as customerName, u.email as customerEmail, u.phone as customerPhone FROM orders o JOIN users u ON o.customerId = u.userId WHERE o.orderId = ?";
+            try {
+                Connection conn = DatabaseManager.getInstance().getConnection();
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, orderId);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (rs.next()) {
+                            User user = UserFactory.createUser("CUSTOMER", rs.getString("customerId"), rs.getString("customerName"), rs.getString("customerEmail"), rs.getString("customerPhone"));
+                            com.foodordering.model.Customer customer = (com.foodordering.model.Customer) user;
+                            Order order = new Order(rs.getString("orderId"), customer, null); // Simplified restaurant
+                            order.setDeliveryAddress(rs.getString("deliveryAddress"));
+                            String statusStr = rs.getString("status").toUpperCase().replace(" ", "_");
+                            try {
+                                order.setStatus(com.foodordering.model.OrderStatus.valueOf(statusStr));
+                            } catch (Exception e) {
+                                // Fallback if status string doesn't match enum exactly
+                                order.setStatus(com.foodordering.model.OrderStatus.PENDING);
+                            }
+                            return order;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("✗ Get order error: " + e.getMessage());
+            }
+            return null;
+        }
+
+        public List<Order> getOrdersByCustomer(String customerId) {
+            List<Order> orders = new ArrayList<>();
+            String sql = "SELECT * FROM orders WHERE customerId = ? ORDER BY orderId DESC";
+            try {
+                Connection conn = DatabaseManager.getInstance().getConnection();
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, customerId);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        while (rs.next()) {
+                            Order order = new Order(rs.getString("orderId"), null, null);
+                            String statusStr = rs.getString("status").toUpperCase().replace(" ", "_");
+                            try {
+                                order.setStatus(com.foodordering.model.OrderStatus.valueOf(statusStr));
+                            } catch (Exception e) {
+                                order.setStatus(com.foodordering.model.OrderStatus.PENDING);
+                            }
+                            order.setDeliveryAddress(rs.getString("deliveryAddress"));
+                            orders.add(order);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("✗ Get orders error: " + e.getMessage());
+            }
+            return orders;
+        }
+
+        public List<Order> getAllOrders() {
+            List<Order> orders = new ArrayList<>();
+            String sql = "SELECT o.*, u.name as customerName FROM orders o LEFT JOIN users u ON o.customerId = u.userId ORDER BY o.orderId DESC";
+            try {
+                Connection conn = DatabaseManager.getInstance().getConnection();
+                try (Statement stmt = conn.createStatement();
+                     ResultSet rs = stmt.executeQuery(sql)) {
+                    while (rs.next()) {
+                        User customer = null;
+                        if (rs.getString("customerName") != null) {
+                            customer = UserFactory.createUser("CUSTOMER", rs.getString("customerId"), rs.getString("customerName"), "", "");
+                        }
+                        Order order = new Order(rs.getString("orderId"), (com.foodordering.model.Customer) customer, null);
+                        String statusStr = rs.getString("status").toUpperCase().replace(" ", "_");
+                        try {
+                            order.setStatus(com.foodordering.model.OrderStatus.valueOf(statusStr));
+                        } catch (Exception e) {
+                            order.setStatus(com.foodordering.model.OrderStatus.PENDING);
+                        }
+                        order.setDeliveryAddress(rs.getString("deliveryAddress"));
+                        orders.add(order);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("✗ Get all orders error: " + e.getMessage());
+            }
+            return orders;
         }
 
         public void cancelOrder(String orderId) {
@@ -237,10 +413,13 @@ public class FoodOrderingFacade {
 
     static class NotificationService {
         public void sendOrderConfirmation(Order order) {
-            System.out.println("  → Confirmation notification sent to " + order.getCustomer().getEmail());
+            System.out.println("  📧 Email: Order #" + order.getOrderId() + " confirmed for " + order.getCustomer().getName());
         }
         public void sendCancellationNotification(Order order) {
-            System.out.println("  → Cancellation notification sent to " + order.getCustomer().getEmail());
+            System.out.println("  📧 Email: Order #" + order.getOrderId() + " has been cancelled.");
+        }
+        public void sendStatusUpdate(Order order) {
+            System.out.println("  🔔 Notification: Order #" + order.getOrderId() + " is now " + order.getStatus().getStatus());
         }
     }
 
